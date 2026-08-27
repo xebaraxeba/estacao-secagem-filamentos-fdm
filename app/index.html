@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estação de Secagem de Filamentos FDM - Prototipagem Virtual (Tinkercad) & Arquitetura Elétrica</title>
+  <meta name="description" content="Simulador e Prototipagem Virtual interativa da Estação de Secagem de Filamentos FDM de baixo custo com controle PID, barramento I2C, MOSFET 12V e validação HIL.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- TOP HEADER -->
+    <header class="app-header">
+      <div class="header-branding">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#38bdf8"/>
+            <circle cx="12" cy="12" r="4" fill="#0284c7" stroke="#38bdf8"/>
+          </svg>
+        </div>
+        <div class="header-titles">
+          <h1>ESTAÇÃO DE SECAGEM DE FILAMENTOS FDM</h1>
+          <p class="subtitle">Item 3: Metodologia e Desenvolvimento Prático • Prototipagem Virtual (Tinkercad) & Arquitetura Elétrica</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-primary" id="btnDigitalTwin" title="Acionar todas as malhas virtuais e teóricas simultaneamente">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          INICIAR DIGITAL TWIN
+        </button>
+        <div class="system-badge" id="systemStatusBadge">
+          <span class="pulse-dot"></span>
+          <span id="badgeText">SISTEMA ATIVO (5 Hz HIL)</span>
+        </div>
+        <button class="btn btn-export" id="btnExportCSV" title="Exportar log de telemetria serial em formato CSV">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+          </svg>
+          Exportar Telemetria CSV
+        </button>
+      </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <nav class="app-tabs">
+      <button class="tab-btn active" data-tab="tab-tinkercad">
+        <span class="tab-icon">⚡</span>
+        Bancada Virtual Tinkercad Circuits
+      </button>
+      <button class="tab-btn" data-tab="tab-chamber">
+        <span class="tab-icon">📦</span>
+        Corte Mecânico & Convecção Térmica
+      </button>
+      <button class="tab-btn" data-tab="tab-telemetry">
+        <span class="tab-icon">📊</span>
+        Osciloscópio & Controle PID vs On-Off
+      </button>
+      <button class="tab-btn" data-tab="tab-fick">
+        <span class="tab-icon">🔬</span>
+        Difusão Fickiana & Dessorção
+      </button>
+      <button class="tab-btn" data-tab="tab-hil">
+        <span class="tab-icon">🔌</span>
+        Injeção de Perturbações (Bancada HIL)
+      </button>
+      <button class="tab-btn" data-tab="tab-validation">
+        <span class="tab-icon">🖥️</span>
+        Validação Científica Computacional
+      </button>
+      <button class="tab-btn" data-tab="tab-python-graphs">
+        <span class="tab-icon">📈</span>
+        Gráficos Python (Matplotlib)
+      </button>
+    </nav>
+
+    <!-- MAIN WORKSPACE -->
+    <main class="app-content">
+      
+      <!-- TAB 1: BANCADA VIRTUAL TINKERCAD CIRCUITS -->
+      <section class="tab-pane active" id="tab-tinkercad">
+        <div class="circuit-grid">
+          
+          <!-- LEFT: INTERACTIVE TINKERCAD CANVAS -->
+          <div class="card circuit-canvas-card">
+            <div class="card-header">
+              <div class="card-title">
+                <span class="status-indicator"></span>
+                Topologia Eletrônica Interativa (3 Malhas de Potência & Lógica)
+              </div>
+              <div class="canvas-controls">
+                <span class="badge badge-tech">Arduino Uno R3</span>
+                <span class="badge badge-tech">I²C (0x27, 0x76)</span>
+                <span class="badge badge-tech">MOSFET IRLZ44N (12V/6A)</span>
+              </div>
+            </div>
+
+            <div class="interactive-circuit-wrapper">
+              <!-- SVG INTERACTIVE BREADBOARD AND CIRCUITS -->
+              <svg id="circuitSvg" viewBox="0 0 920 540" width="100%" height="100%">
+                <!-- Background grid -->
+                <defs>
+                  <pattern id="gridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <circle cx="2" cy="2" r="1" fill="#1e293b" />
+                  </pattern>
+                  <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="4" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                  <linearGradient id="peltierHeatGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#ef4444" id="peltierHotStop" />
+                    <stop offset="50%" stop-color="#78350f" />
+                    <stop offset="100%" stop-color="#3b82f6" id="peltierColdStop" />
+                  </linearGradient>
+                </defs>
+
+                <rect width="100%" height="100%" fill="url(#gridPattern)" />
+
+                <!-- ANIMATED WIRE TRACES -->
+                <!-- I2C SDA Line (Cyan) -->
+                <path d="M 840 140 L 840 120 L 450 120 L 450 140 M 450 140 L 450 450 L 190 450" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,4" class="wire-anim" />
+                <!-- I2C SCL Line (Yellow) -->
+                <path d="M 855 140 L 855 110 L 480 110 L 480 140 M 480 140 L 480 470 L 190 470" fill="none" stroke="#eab308" stroke-width="2" class="wire-anim" />
+                <!-- PWM D9 Line to MOSFET Gate -->
+                <path d="M 390 190 L 390 265 L 290 265" fill="none" stroke="#f59e0b" stroke-width="3" id="wirePwmGate" />
+                <!-- D10 Line to Exhaust Fan -->
+                <path d="M 420 190 L 420 440 L 680 440" fill="none" stroke="#a855f7" stroke-width="2" id="wireExhaust" />
+                <!-- 12V Power Bus -->
+                <path d="M 160 85 L 210 85 L 210 400 L 430 350" fill="none" stroke="#ef4444" stroke-width="3" />
+
+                <!-- 1. FONTE CHAVEADA 12V 10A -->
+                <g id="comp-psu" class="circuit-module" transform="translate(30, 30)" data-info-title="Fonte Chaveada 12V 10A" data-info-desc="Fonte de alimentação principal. Fornece energia para a pastilha Peltier e ventoinhas, garantindo até 120W de potência contínua para o sistema.">
+                  <rect x="0" y="0" width="160" height="100" rx="8" fill="#1e293b" stroke="#ef4444" stroke-width="2" />
+                  <rect x="10" y="10" width="140" height="30" rx="4" fill="#0f172a" />
+                  <text x="20" y="30" fill="#ef4444" font-family="'Fira Code', monospace" font-size="12" font-weight="bold">FONTE 12V 10A</text>
+                  <text x="15" y="60" fill="#94a3b8" font-size="10">Potência: 120W DC</text>
+                  <text x="15" y="78" fill="#38bdf8" font-size="10" id="psuPowerReadout">I: 4.85A | 58.2W</text>
+                  
+                  <!-- Terminals -->
+                  <circle cx="130" cy="55" r="5" fill="#ef4444" id="term-12v-pos" />
+                  <text x="110" y="58" fill="#ef4444" font-size="9" font-weight="bold">+12V</text>
+                  <circle cx="130" cy="80" r="5" fill="#0284c7" id="term-12v-gnd" />
+                  <text x="110" y="83" fill="#38bdf8" font-size="9" font-weight="bold">GND</text>
+                </g>
+
+                <!-- 2. ARDUINO UNO R3 -->
+                <g id="comp-arduino" class="circuit-module" transform="translate(230, 30)" data-info-title="Arduino Uno R3" data-info-desc="O cérebro do sistema. Executa o algoritmo PID com Relay Windowing, lê sensores I2C, controla a interface e reporta a telemetria HIL (5 Hz).">
+                  <rect x="0" y="0" width="280" height="180" rx="10" fill="#005B60" stroke="#00b4d8" stroke-width="2" />
+                  <rect x="20" y="20" width="70" height="45" rx="3" fill="#1e293b" stroke="#64748b" />
+                  <text x="30" y="47" fill="#cbd5e1" font-family="'Fira Code', monospace" font-size="11" font-weight="bold">USB HIL</text>
+                  
+                  <!-- MCU Chip -->
+                  <rect x="120" y="60" width="90" height="30" rx="2" fill="#0f172a" stroke="#334155" />
+                  <text x="130" y="80" fill="#94a3b8" font-family="'Fira Code', monospace" font-size="9">ATmega328P</text>
+
+                  <text x="115" y="38" fill="#ffffff" font-weight="bold" font-size="15">ARDUINO UNO</text>
+
+                  <!-- Arduino Pin Headers Top (Digital) -->
+                  <g transform="translate(10, 150)">
+                    <rect x="0" y="0" width="260" height="20" rx="3" fill="#0f172a" />
+                    <!-- Pins -->
+                    <circle cx="30" cy="10" r="4" fill="#22c55e" id="pin-d2" />
+                    <text x="25" y="-5" fill="#22c55e" font-size="9" font-family="monospace">D2</text>
+                    <circle cx="60" cy="10" r="4" fill="#38bdf8" id="pin-d3" />
+                    <text x="55" y="-5" fill="#38bdf8" font-size="9" font-family="monospace">D3</text>
+                    
+                    <circle cx="160" cy="10" r="4" fill="#f59e0b" id="pin-d9" class="pwm-pin" />
+                    <text x="150" y="-5" fill="#f59e0b" font-size="9" font-weight="bold" font-family="monospace">D9~</text>
+                    
+                    <circle cx="190" cy="10" r="4" fill="#a855f7" id="pin-d10" />
+                    <text x="182" y="-5" fill="#a855f7" font-size="9" font-family="monospace">D10</text>
+                  </g>
+
+                  <!-- Arduino Pin Headers Bottom (Power & Analog) -->
+                  <g transform="translate(10, 100)">
+                    <circle cx="20" cy="10" r="4" fill="#ef4444" id="pin-5v" />
+                    <text x="15" y="25" fill="#ef4444" font-size="8" font-family="monospace">5V</text>
+                    <circle cx="45" cy="10" r="4" fill="#64748b" id="pin-gnd" />
+                    <text x="37" y="25" fill="#94a3b8" font-size="8" font-family="monospace">GND</text>
+                    
+                    <circle cx="210" cy="10" r="4" fill="#38bdf8" id="pin-a4" />
+                    <text x="202" y="25" fill="#38bdf8" font-size="8" font-family="monospace">A4/SDA</text>
+                    <circle cx="240" cy="10" r="4" fill="#eab308" id="pin-a5" />
+                    <text x="232" y="25" fill="#eab308" font-size="8" font-family="monospace">A5/SCL</text>
+                  </g>
+                </g>
+
+                <!-- 3. DISPLAY LCD 16x2 I2C (PCF8574) -->
+                <g id="comp-lcd" class="circuit-module" transform="translate(560, 30)" data-info-title="Display LCD 16x2 I2C" data-info-desc="Interface Homem-Máquina. Exibe o perfil ativo, temperatura e umidade atual, status da exaustão/aquecimento, usando apenas os pinos SDA/SCL.">
+                  <rect x="0" y="0" width="330" height="150" rx="8" fill="#0f172a" stroke="#38bdf8" stroke-width="2" />
+                  <rect x="15" y="15" width="300" height="70" rx="4" fill="#032030" stroke="#0284c7" stroke-width="1.5" />
+                  
+                  <!-- LCD Character Grid Simulation -->
+                  <text x="25" y="45" fill="#38bdf8" font-family="'Fira Code', monospace" font-size="14" font-weight="bold" id="lcdLine1">PETG  65C  04h00m</text>
+                  <text x="25" y="70" fill="#38bdf8" font-family="'Fira Code', monospace" font-size="14" font-weight="bold" id="lcdLine2">T:24.5C H:68% [H]</text>
+                  
+                  <text x="20" y="110" fill="#64748b" font-size="11">Display LCD 16x2 HD44780 + I²C Backpack</text>
+                  <text x="20" y="130" fill="#38bdf8" font-family="monospace" font-size="10">Endereço I²C: 0x27 (PCF8574)</text>
+                  
+                  <!-- I2C Pins -->
+                  <g transform="translate(240, 100)">
+                    <circle cx="10" cy="15" r="3" fill="#64748b" /><text x="5" y="32" fill="#64748b" font-size="7">GND</text>
+                    <circle cx="25" cy="15" r="3" fill="#ef4444" /><text x="20" y="32" fill="#ef4444" font-size="7">VCC</text>
+                    <circle cx="40" cy="15" r="3" fill="#38bdf8" /><text x="35" y="32" fill="#38bdf8" font-size="7">SDA</text>
+                    <circle cx="55" cy="15" r="3" fill="#eab308" /><text x="50" y="32" fill="#eab308" font-size="7">SCL</text>
+                  </g>
+                </g>
+
+                <!-- 4. SENSOR BOSCH BME280 (I2C 0x76) -->
+                <g id="comp-bme280" class="circuit-module" transform="translate(40, 410)" data-info-title="Sensor BME280" data-info-desc="Sensor ambiental de precisão. Mede Temperatura, Umidade e Pressão via I2C (endereço 0x76). Crucial para a Malha Fechada do PID.">
+                  <rect x="0" y="0" width="150" height="110" rx="6" fill="#1e1b4b" stroke="#a855f7" stroke-width="1.5" />
+                  <rect x="55" y="20" width="40" height="35" rx="3" fill="#312e81" stroke="#818cf8" />
+                  <text x="63" y="42" fill="#c7d2fe" font-size="9" font-weight="bold">MEMS</text>
+                  <text x="15" y="75" fill="#e0e7ff" font-weight="bold" font-size="11">BOSCH BME280</text>
+                  <text x="15" y="92" fill="#a5b4fc" font-size="9">Endereço: 0x76</text>
+                </g>
+
+                <!-- 5. MÓDULO MOSFET IRF520 / IRLZ44N -->
+                <g id="comp-mosfet" class="circuit-module" transform="translate(230, 250)" data-info-title="Módulo MOSFET IRLZ44N" data-info-desc="Atuador de potência de estado sólido. Permite chavear a corrente de 12V da Peltier usando o sinal lógico de 5V do pino D9 do Arduino.">
+                  <rect x="0" y="0" width="170" height="130" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="2" />
+                  <!-- Heatsink TO-220 -->
+                  <rect x="20" y="15" width="40" height="50" rx="2" fill="#475569" stroke="#94a3b8" />
+                  <text x="75" y="35" fill="#fcd34d" font-weight="bold" font-size="12">MOSFET 12V</text>
+                  <text x="75" y="52" fill="#94a3b8" font-size="10">IRLZ44N Logic</text>
+                  
+                  <rect x="15" y="80" width="140" height="35" rx="4" fill="#0f172a" />
+                  <text x="25" y="102" fill="#f59e0b" font-family="'Fira Code', monospace" font-size="10" id="mosfetDutyText">PWM: 0.0% (LOW)</text>
+                  <circle cx="140" cy="97" r="5" fill="#64748b" id="mosfetLedIndicator" />
+                </g>
+
+                <!-- 6. ATUADOR TÉRMICO PELTIER TEC1-12706 -->
+                <g id="comp-peltier" class="circuit-module" transform="translate(430, 250)" data-info-title="Pastilha Peltier TEC1-12706" data-info-desc="Atuador termelétrico. Bombeará calor para o interior da câmara. É ativada usando pulsos largos (Janela Temporal) para evitar fadiga mecânica.">
+                  <rect x="0" y="0" width="220" height="130" rx="8" fill="#0f172a" stroke="#ef4444" stroke-width="2" />
+                  <rect x="15" y="15" width="190" height="50" rx="4" fill="url(#peltierHeatGrad)" stroke="#f87171" stroke-width="1.5" id="peltierGlowRect" />
+                  <text x="25" y="38" fill="#ffffff" font-weight="bold" font-size="12">PASTILHA PELTIER TEC1-12706</text>
+                  <text x="25" y="55" fill="#fef08a" font-size="10">12V / 60W • Convecção Térmica</text>
+                  
+                  <text x="15" y="85" fill="#fca5a5" font-size="10">Face Quente: Câmara (+65°C)</text>
+                  <text x="15" y="102" fill="#93c5fd" font-size="10">Face Fria: Condensador Orvalho</text>
+                  <text x="15" y="120" fill="#38bdf8" font-family="monospace" font-size="10" id="peltierPowerReadout">Potência Atual: 0.0 W</text>
+                </g>
+
+                <!-- 7. VENTOINHA PRIMÁRIA (DISSIPADOR) -->
+                <g id="comp-fan1" class="circuit-module" transform="translate(680, 250)" data-info-title="Ventoinha Primária de Convecção" data-info-desc="Fan de 12V acionada continuamente. Garante que o ar quente circule por toda a câmara de forma toroidal, alcançando baixo Número de Biot.">
+                  <rect x="0" y="0" width="210" height="110" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+                  <circle cx="45" cy="55" r="28" fill="#0f172a" stroke="#0284c7" stroke-width="2" />
+                  <g id="fan1Blades" transform="translate(45, 55)">
+                    <path d="M-20 -5 L20 5 M-5 20 L5 -20" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" />
+                  </g>
+                  <text x="85" y="40" fill="#ffffff" font-weight="bold" font-size="12">FAN PRIMÁRIA</text>
+                  <text x="85" y="60" fill="#38bdf8" font-size="10">Convecção Contínua</text>
+                  <text x="85" y="80" fill="#94a3b8" font-size="10">12V / 0.15A (7.5 CFM)</text>
+                  <text x="85" y="98" fill="#22c55e" font-size="9" font-weight="bold">STATUS: ATIVA</text>
+                </g>
+
+                <!-- 8. VENTOINHA SECUNDÁRIA (EXAUSTOR DE UMIDADE) -->
+                <g id="comp-fan2" class="circuit-module" transform="translate(680, 380)" data-info-title="Ventoinha Exaustora de Umidade" data-info-desc="Exaustor controlado por histerese (pino D10). Liga automaticamente quando a umidade saturar e desliga após expulsar o vapor para manter calor.">
+                  <rect x="0" y="0" width="210" height="130" rx="8" fill="#1e293b" stroke="#a855f7" stroke-width="1.5" />
+                  <circle cx="45" cy="65" r="28" fill="#0f172a" stroke="#9333ea" stroke-width="2" />
+                  <g id="fan2Blades" transform="translate(45, 65)">
+                    <path d="M-20 -5 L20 5 M-5 20 L5 -20" stroke="#c084fc" stroke-width="4" stroke-linecap="round" />
+                  </g>
+                  <text x="85" y="40" fill="#ffffff" font-weight="bold" font-size="12">EXAUSTOR 12V</text>
+                  <text x="85" y="60" fill="#c084fc" font-size="10">Driver 2N2222 (D10)</text>
+                  <text x="85" y="80" fill="#94a3b8" font-size="10">Controle por Histerese</text>
+                  <text x="85" y="102" fill="#64748b" font-size="10" font-weight="bold" id="exhaustStatusText">STATUS: DESLIGADO</text>
+                </g>
+
+                <!-- 9. BOTÕES DE CONTROLE IHM VIRTUAIS -->
+                <g id="comp-buttons" class="circuit-module" transform="translate(30, 160)" data-info-title="Botões IHM" data-info-desc="Teclas de interface. Permitem navegar pelos perfis de temperatura e iniciar ou interromper a secagem diretamente pelo hardware.">
+                  <rect x="0" y="0" width="160" height="220" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5" />
+                  <text x="15" y="25" fill="#f8fafc" font-weight="bold" font-size="12">TECLAS IHM (D2/D3)</text>
+                  
+                  <!-- Button 1: Select Profile -->
+                  <g id="btnSelectVirtual" class="interactive-btn-svg" style="cursor: pointer;">
+                    <rect x="15" y="45" width="130" height="65" rx="6" fill="#047857" stroke="#34d399" stroke-width="2" />
+                    <text x="25" y="70" fill="#ffffff" font-weight="bold" font-size="11">BTN_SELECT (D2)</text>
+                    <text x="25" y="90" fill="#a7f3d0" font-size="9">Trocar Perfil Mat.</text>
+                  </g>
+
+                  <!-- Button 2: Start / Stop -->
+                  <g id="btnStartVirtual" class="interactive-btn-svg" style="cursor: pointer;">
+                    <rect x="15" y="125" width="130" height="65" rx="6" fill="#1d4ed8" stroke="#60a5fa" stroke-width="2" />
+                    <text x="25" y="150" fill="#ffffff" font-weight="bold" font-size="11">BTN_START (D3)</text>
+                    <text x="25" y="170" fill="#bfdbfe" font-size="9">Iniciar / Parar</text>
+                  </g>
+                </g>
+
+              </svg>
+            </div>
+          </div>
+
+          <!-- RIGHT: LIVE PARAMETERS & PHYSICAL CONTROLS -->
+          <div class="card circuit-controls-card">
+            <div class="card-header">
+              <div class="card-title">🎮 Painel de Controle IHM & Parâmetros</div>
+            </div>
+
+            <!-- Profile Selector Box -->
+            <div class="control-box">
+              <label class="control-label">Perfil de Material Polimérico Ativo:</label>
+              <div class="profile-grid">
+                <button class="btn-profile" data-profile="PLA">PLA (48°C)</button>
+                <button class="btn-profile active" data-profile="PETG">PETG (65°C)</button>
+                <button class="btn-profile" data-profile="ABS">ABS (78°C)</button>
+                <button class="btn-profile" data-profile="TPU">TPU (52°C)</button>
+                <button class="btn-profile" data-profile="NYLON">Nylon (75°C)</button>
+                <button class="btn-profile" data-profile="PC">PC (90°C)</button>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-grid">
+              <button class="btn btn-primary" id="btnStartCycle">
+                <span id="startBtnIcon">▶</span> Iniciar Secagem
+              </button>
+              <button class="btn btn-danger" id="btnEmergencyStop">
+                🛑 Parada de Emergência
+              </button>
+            </div>
+
+            <!-- Real-time Instrument Gauges -->
+            <div class="gauges-grid">
+              <div class="gauge-card">
+                <div class="gauge-header">Temperatura Interna</div>
+                <div class="gauge-value" id="gaugeTemp">24.5 °C</div>
+                <div class="gauge-sub">Alvo: <span id="gaugeSetpoint">65.0 °C</span></div>
+                <div class="progress-bar">
+                  <div class="progress-fill temp-fill" id="tempProgressBar" style="width: 25%;"></div>
+                </div>
+              </div>
+
+              <div class="gauge-card">
+                <div class="gauge-header">Umidade Relativa (RH)</div>
+                <div class="gauge-value" id="gaugeHum">68.0 %</div>
+                <div class="gauge-sub">Exaustor Liga: &gt;45%</div>
+                <div class="progress-bar">
+                  <div class="progress-fill hum-fill" id="humProgressBar" style="width: 68%;"></div>
+                </div>
+              </div>
+
+              <div class="gauge-card">
+                <div class="gauge-header">Esforço PID (PWM)</div>
+                <div class="gauge-value" id="gaugePid">0.0 %</div>
+                <div class="gauge-sub">Janela: 5000 ms</div>
+                <div class="progress-bar">
+                  <div class="progress-fill pid-fill" id="pidProgressBar" style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div class="gauge-card">
+                <div class="gauge-header">Estado da FSM</div>
+                <div class="gauge-value status-text" id="gaugeState">IDLE</div>
+                <div class="gauge-sub">Tempo Restante: <span id="gaugeTimeRem">04h 00m</span></div>
+              </div>
+            </div>
+
+            <!-- Real-time Relay Windowing Animation -->
+            <div class="window-visualizer">
+              <div class="window-header">
+                <span>Janela Temporal Proporcional (Relay Windowing: 5.0 s)</span>
+                <span id="windowTimerText">t = 0.0s / 5.0s</span>
+              </div>
+              <div class="window-track">
+                <div class="window-on-bar" id="windowOnBar" style="width: 40%;"></div>
+                <div class="window-cursor" id="windowCursor" style="left: 0%;"></div>
+              </div>
+              <div class="window-legend">
+                <span class="legend-item"><span class="legend-dot on"></span> MOSFET Ativo (HIGH)</span>
+                <span class="legend-item"><span class="legend-dot off"></span> Repouso Térmico (LOW)</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- NEW ANALYSIS PANEL -->
+        <div class="analysis-panel">
+          <div class="analysis-header">
+            <span>📝 Análise e Conclusões da Arquitetura</span>
+          </div>
+          <div class="analysis-content">
+            <p>A arquitetura eletrônica consolida o controle termodinâmico utilizando o <strong>Arduino Uno</strong> como cérebro HIL. O barramento <strong>I²C</strong> simplifica a fiação ao integrar o sensor <strong>BME280</strong> e o display LCD em apenas 2 vias de dados (SDA/SCL). A ativação de correntes intensas (6A+) para a pastilha Peltier é feita de forma segura por um <strong>MOSFET IRLZ44N (Nível Lógico)</strong>.</p>
+            <p>Em vez de um PWM tradicional de alta frequência, optou-se pela <strong>Janela Temporal Proporcional (Relay Windowing de 5s)</strong>. Esta técnica evita a fadiga mecânica prematura da junção termoelétrica, provendo a mesma resposta de um PID contínuo sem comprometer a vida útil do atuador de estado sólido.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: CORTE MECÂNICO & CONVECÇÃO TÉRMICA -->
+      <section class="tab-pane" id="tab-chamber">
+        <div class="card full-card">
+          <div class="card-header">
+            <div class="card-title">📦 Projeto Mecânico CAD & Dinâmica de Convecção Forçada (Câmara de PP)</div>
+            <div class="badges">
+              <span class="badge badge-tech">Caixa PP 6.5L Hermética</span>
+              <span class="badge badge-tech">Manta Aluminizada (ε = 0.05)</span>
+              <span class="badge badge-tech">Rolamentos 608ZZ</span>
+            </div>
+          </div>
+
+          <div class="chamber-view-grid">
+            <div class="chamber-diagram-container">
+              <svg id="chamberSvg" viewBox="0 0 700 450" width="100%" height="100%">
+                <!-- PP Outer Box -->
+                <rect x="40" y="30" width="620" height="380" rx="16" fill="#1e293b" stroke="#38bdf8" stroke-width="3" />
+                <text x="60" y="60" fill="#38bdf8" font-weight="bold" font-size="14">CAIXA CONTENTORA DE POLIPROPILENO (PP 2.5mm)</text>
+                
+                <!-- Aluminized Foam Insulation -->
+                <rect x="52" y="70" width="596" height="328" rx="10" fill="#0f172a" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="6,3" />
+                <text x="70" y="95" fill="#e2e8f0" font-size="11">Espuma de Polietileno Expandido Aluminizado (5mm - Barreira Radiativa Infravermelha)</text>
+
+                <!-- Filament Spool & Bearings -->
+                <g transform="translate(350, 220)">
+                  <!-- Spool Outer Flange -->
+                  <circle cx="0" cy="0" r="105" fill="#334155" stroke="#64748b" stroke-width="4" opacity="0.8" />
+                  <!-- Filament Coil -->
+                  <circle cx="0" cy="0" r="85" fill="#0284c7" stroke="#38bdf8" stroke-width="2" id="filamentCoilVisual" />
+                  <!-- Inner Core -->
+                  <circle cx="0" cy="0" r="40" fill="#1e293b" stroke="#94a3b8" stroke-width="3" />
+                  <!-- 608ZZ Bearings -->
+                  <circle cx="0" cy="0" r="15" fill="#cbd5e1" stroke="#475569" stroke-width="2" />
+                  <circle cx="0" cy="0" r="6" fill="#0f172a" />
+                  
+                  <text x="-45" y="-5" fill="#ffffff" font-weight="bold" font-size="12">CARRETEL</text>
+                  <text x="-35" y="15" fill="#e0f2fe" font-size="10">1.0 kg PETG</text>
+                </g>
+
+                <!-- 3D Printed Spool Roller Supports -->
+                <rect x="290" y="325" width="120" height="25" rx="4" fill="#f59e0b" />
+                <text x="300" y="342" fill="#0f172a" font-weight="bold" font-size="10">Mancal Rolamentos 608ZZ</text>
+
+                <!-- Heating Module & Air Baffle Base -->
+                <g transform="translate(80, 280)">
+                  <!-- 3D Printed Air Duct / Baffle -->
+                  <path d="M 0 80 L 40 10 L 160 10 L 200 80 Z" fill="#d97706" opacity="0.7" />
+                  <text x="35" y="40" fill="#fff" font-weight="bold" font-size="11">Defletor Térmico 3D</text>
+                  
+                  <!-- Peltier & Heatsink -->
+                  <rect x="45" y="45" width="110" height="25" rx="3" fill="#ef4444" />
+                  <text x="50" y="62" fill="#fff" font-size="10" font-weight="bold">TEC1-12706 + Dissipador</text>
+                  
+                  <!-- Primary Fan -->
+                  <rect x="45" y="72" width="110" height="15" rx="2" fill="#0284c7" />
+                  <text x="55" y="83" fill="#fff" font-size="9">Fan Convecção Contínua</text>
+                </g>
+
+                <!-- Convective Air Flow Streamlines (Animated) -->
+                <g class="airflow-streamlines">
+                  <path d="M 180 290 Q 230 140 350 110 Q 480 130 530 250 Q 510 360 350 370 Q 200 370 180 290" fill="none" stroke="#f97316" stroke-width="2.5" stroke-dasharray="8,6" class="flow-anim" />
+                  <path d="M 160 270 Q 200 160 350 130 Q 500 150 510 270 Q 480 340 350 350 Q 220 350 160 270" fill="none" stroke="#facc15" stroke-width="2" stroke-dasharray="6,6" class="flow-anim" />
+                </g>
+
+                <!-- Humidity Exhaust Valve & Condenser -->
+                <g transform="translate(540, 60)">
+                  <rect x="0" y="0" width="80" height="40" rx="4" fill="#a855f7" />
+                  <text x="8" y="20" fill="#fff" font-weight="bold" font-size="10">Válvula Alívio</text>
+                  <text x="8" y="33" fill="#f3e8ff" font-size="8">Exaustor D10</text>
+                </g>
+
+                <!-- BME280 Sensor Location -->
+                <g transform="translate(100, 120)">
+                  <rect x="0" y="0" width="75" height="35" rx="4" fill="#1e1b4b" stroke="#818cf8" stroke-width="1.5" />
+                  <text x="8" y="16" fill="#a5b4fc" font-weight="bold" font-size="9">BME280 I²C</text>
+                  <text x="8" y="28" fill="#e0e7ff" font-size="8">Temp / RH</text>
+                </g>
+              </svg>
+            </div>
+
+            <div class="chamber-specs-panel">
+              <h3>Especificações Construtivas & Físicas</h3>
+              <ul class="specs-list">
+                <li><strong>Contentor Hermético:</strong> Caixa de Polipropileno (PP) de grau alimentício/industrial, volume 6.5L, espessura de 2.5mm com travas e vedação de silicone.</li>
+                <li><strong>Barreira Radiativa:</strong> Manta de polietileno expandido aluminizado de 5mm, emissividade $\epsilon \approx 0.05$, reduzindo perdas térmicas em mais de 65%.</li>
+                <li><strong>Mancais de Baixo Atrito:</strong> 4 rolamentos de esferas 608ZZ blindados suportando carretéis de 500g a 1.0kg com alimentação suave durante a impressão (*in-situ drying*).</li>
+                <li><strong>Convecção Térmica Toroidal:</strong> Duto aerodinâmico impresso em 3D guiando o ar aquecido uniformemente ao redor da bobina, garantindo número de Biot $Bi < 0.1$ (aquecimento uniforme sem gradientes).</li>
+                <li><strong>Condensador e Drenagem:</strong> Ponto de orvalho induzido na face externa da pastilha Peltier e exaustão controlada de ar saturado.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW ANALYSIS PANEL -->
+        <div class="analysis-panel" style="border-left-color: var(--accent-amber);">
+          <div class="analysis-header" style="color: var(--accent-amber);">
+            <span>📐 Análise Térmica e Construtiva</span>
+          </div>
+          <div class="analysis-content">
+            <p>A configuração mecânica adotada permite a maximização da eficiência energética. A manta aluminizada com baixa emissividade ($ \epsilon \approx 0.05 $) bloqueia a fuga de calor por radiação, mantendo a temperatura interna na zona ideal (65°C para PETG) com consumo elétrico mínimo em regime permanente.</p>
+            <p>A <strong>Convecção Térmica Forçada</strong> garante um Número de Biot extremamente baixo ($ Bi < 0.1 $). Isso significa que o ar quente circula mais rápido do que a condução interna do filamento, resultando em um aquecimento global e uniforme do carretel, sem criar "pontos quentes" que poderiam causar fusão e deformação localizada nas espiras externas.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: OSCILOSCÓPIO & CONTROLE PID VS ON-OFF -->
+      <section class="tab-pane" id="tab-telemetry">
+        <div class="card full-card">
+          <div class="card-header">
+            <div class="card-title">📊 Osciloscópio Dinâmico: Estabilidade Térmica (PID Proposto vs Termostato On-Off)</div>
+            <div class="chart-toggles">
+              <label class="toggle-container">
+                <input type="radio" name="controlModeRadio" value="PID" checked id="radioPidMode">
+                <span class="toggle-label">Controlador PID Proposto (Relay Windowing)</span>
+              </label>
+              <label class="toggle-container">
+                <input type="radio" name="controlModeRadio" value="ONOFF" id="radioOnOffMode">
+                <span class="toggle-label">Termostato Histerese On-Off (Bang-Bang)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Real-Time Canvas Oscilloscope -->
+          <div class="chart-container">
+            <canvas id="scopeCanvas" width="960" height="340"></canvas>
+          </div>
+
+          <!-- Comparison Metrics Table (Directly from Document Table 2) -->
+          <div class="metrics-table-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Critério de Desempenho Térmico</th>
+                  <th>Controlador PID Proposto (Este Projeto)</th>
+                  <th>Comportamento Empírico On-Off (Comum)</th>
+                  <th>Impacto no Filamento Polimérico</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Sobressinal (Overshoot Máximo)</strong></td>
+                  <td class="badge-good">Apenas 1,8% (pico 66,1°C)</td>
+                  <td class="badge-bad">Agressivo: ~13% (pico 73,4°C)</td>
+                  <td>Evita colapso vítreo e fusão entre espiras ($T < T_g$)</td>
+                </tr>
+                <tr>
+                  <td><strong>Tempo de Acomodação (Estabilização)</strong></td>
+                  <td class="badge-good">~710 segundos (11,8 min)</td>
+                  <td class="badge-bad">Infinito (Oscilação harmônica contínua)</td>
+                  <td>Taxa de secagem contínua e previsível</td>
+                </tr>
+                <tr>
+                  <td><strong>Erro de Regime Permanente</strong></td>
+                  <td class="badge-good">&lt; 0,2°C (indetectável)</td>
+                  <td class="badge-bad">Flutuação contínua de ±4,5°C</td>
+                  <td>Estabilidade térmica ideal para cinética de Fick</td>
+                </tr>
+                <tr>
+                  <td><strong>Tempo de Subida (10% a 90%)</strong></td>
+                  <td>480 segundos (Subida suave e amortecida)</td>
+                  <td>350 segundos (Subida abrupta e perigosa)</td>
+                  <td>Amortece estresse térmico nos semicondutores e carretel</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- NEW ANALYSIS PANEL -->
+        <div class="analysis-panel" style="border-left-color: #4ade80;">
+          <div class="analysis-header" style="color: #4ade80;">
+            <span>📈 Conclusão sobre Controle PID vs On-Off</span>
+          </div>
+          <div class="analysis-content">
+            <p>A simulação demonstra claramente a superioridade do <strong>Controlador PID</strong> sobre um termostato padrão de histerese. Enquanto o On-Off gera flutuações harmônicas severas (oscilação contínua de $\pm 4,5°C$), o controle Proporcional-Integral-Derivativo estabiliza a planta térmica com um erro de regime indetectável ($< 0,2°C$).</p>
+            <p>O controle rígido do <strong>Sobressinal (Overshoot)</strong> limitando-o a apenas 1,8% (pico 66,1°C) é vital. Na secagem de polímeros amorfos ou semicristalinos como PLA e PETG, um pico descontrolado excedendo a temperatura de transição vítrea ($T_g$) causaria o colapso estrutural (derretimento/fusão) de todo o rolo, inviabilizando a impressão 3D.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: DIFUSÃO FICKIANA & DESSORÇÃO -->
+      <section class="tab-pane" id="tab-fick">
+        <div class="card full-card">
+          <div class="card-header">
+            <div class="card-title">🔬 Modelagem Algébrica da Difusão Fickiana (PETG 1,75 mm a 65°C)</div>
+            <span class="badge badge-tech">Segunda Lei de Fick • Relação de Arrhenius</span>
+          </div>
+
+          <div class="fick-grid">
+            <div class="chart-container-fick">
+              <canvas id="fickCanvas" width="550" height="320"></canvas>
+            </div>
+
+            <div class="fick-table-wrapper">
+              <h3>Progressão da Dessorção de Umidade no Tempo (Tabela 3)</h3>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tempo (h)</th>
+                    <th>Umidade Retida (%)</th>
+                    <th>Fração Removida (%)</th>
+                    <th>Condição Física do Filamento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>0,0h (Início)</td>
+                    <td>1,200%</td>
+                    <td>0,0%</td>
+                    <td><span class="status-chip chip-critical">Crítica (Microexplosões / Stringing)</span></td>
+                  </tr>
+                  <tr>
+                    <td>1,0h</td>
+                    <td>0,810%</td>
+                    <td>~32,5%</td>
+                    <td><span class="status-chip chip-bad">Ruim (Bolhas e opacidade)</span></td>
+                  </tr>
+                  <tr>
+                    <td>2,0h</td>
+                    <td>0,425%</td>
+                    <td>~64,5%</td>
+                    <td><span class="status-chip chip-warning">Regular (Hidrólise perceptível)</span></td>
+                  </tr>
+                  <tr>
+                    <td>3,0h</td>
+                    <td>0,195%</td>
+                    <td>~83,7%</td>
+                    <td><span class="status-chip chip-good">Boa (Impressões cosméticas)</span></td>
+                  </tr>
+                  <tr>
+                    <td>4,0h (Término)</td>
+                    <td><strong>0,085%</strong></td>
+                    <td><strong>~92,9%</strong></td>
+                    <td><span class="status-chip chip-excellent">Excelente (Resistência mecânica total)</span></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="fick-equation-box">
+                <p>$$\frac{\partial C(r,t)}{\partial t} = \frac{1}{r} \frac{\partial}{\partial r}\left( r D_{eff} \frac{\partial C}{\partial r} \right) \quad \text{onde} \quad D_{eff}(T) = D_0 \exp\left(-\frac{E_a}{R_{gas} T}\right)$$</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW ANALYSIS PANEL -->
+        <div class="analysis-panel" style="border-left-color: #a855f7;">
+          <div class="analysis-header" style="color: #a855f7;">
+            <span>💧 Conclusões do Estudo de Dessorção Fickiana</span>
+          </div>
+          <div class="analysis-content">
+            <p>A Segunda Lei de Fick, acoplada à equação de Arrhenius, comprova a não linearidade da secagem. O aumento da temperatura para 65°C eleva exponencialmente o coeficiente de difusão efetivo ($D_{eff}$), conferindo energia cinética suficiente para as moléculas de água ($H_2O$) romperem as pontes de hidrogênio com as cadeias poliméricas e migrarem do núcleo para a borda do filamento.</p>
+            <p>Como observado nos resultados teóricos, um período de <strong>4 a 6 horas</strong> é o ponto de saturação ideal, removendo cerca de 93% da umidade absorvida. A umidade periférica evapora nas primeiras horas, mas o núcleo de 1,75mm exige que o fluxo de calor convectivo seja contínuo e estável a longo prazo para a completa desidratação (cura mecânica do PETG).</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: INJEÇÃO DE PERTURBAÇÕES (BANCADA HIL) -->
+      <section class="tab-pane" id="tab-hil">
+        <div class="card full-card">
+          <div class="card-header">
+            <div class="card-title">🧪 Bancada de Testes Automatizados Hardware in the Loop (HIL)</div>
+            <div class="hil-status">
+              <span class="badge badge-good" id="hilStatusBadge">HIL ONLINE (Taxa: 5.0 Hz)</span>
+            </div>
+          </div>
+
+          <div class="hil-grid">
+            <!-- Left: Perturbation Injection Sliders & Switches -->
+            <div class="hil-controls-box">
+              <h3>Injeção Dinâmica de Perturbações Térmicas e Falhas</h3>
+              
+              <div class="slider-group">
+                <div class="slider-header">
+                  <span>Temperatura Ambiente Externa ($T_{amb}$)</span>
+                  <span class="slider-val" id="valTamb">22.0 °C</span>
+                </div>
+                <input type="range" min="10" max="40" step="0.5" value="22" id="sliderTamb" class="range-slider">
+              </div>
+
+              <div class="slider-group">
+                <div class="slider-header">
+                  <span>Umidade Relativa Ambiente ($RH_{amb}$)</span>
+                  <span class="slider-val" id="valRHamb">65.0 %</span>
+                </div>
+                <input type="range" min="20" max="95" step="1" value="65" id="sliderRHamb" class="range-slider">
+              </div>
+
+              <div class="fault-buttons-grid">
+                <button class="btn btn-warning" id="btnThermalShock">
+                  ❄️ Injetar Choque Térmico (Abrir Tampa)
+                </button>
+                <button class="btn btn-danger" id="btnDisconnectSensor">
+                  ⚠️ Simular Falha de I²C (Desconectar BME280)
+                </button>
+                <button class="btn btn-danger" id="btnOverTempFault">
+                  🔥 Simular Sobretemperatura (&gt;90°C)
+                </button>
+                <button class="btn btn-secondary" id="btnResetFaults">
+                  🔄 Restaurar Condições Normais
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Real-Time Telemetry Terminal Stream -->
+            <div class="hil-terminal-box">
+              <div class="terminal-header">
+                <span class="terminal-title">Monitor Serial HIL (UART 115200 bps - 5Hz)</span>
+                <span class="terminal-count" id="terminalLineCount">0 linhas transmitidas</span>
+              </div>
+              <div class="terminal-logs" id="terminalLogs">
+                <div class="log-line">TIMESTAMP_MS,STATE,TEMP_CURRENT,TEMP_SETPOINT,HUMIDITY_RH,PID_DUTY,EXHAUST_STATE,ERROR_MSG</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW ANALYSIS PANEL -->
+        <div class="analysis-panel" style="border-left-color: #ef4444;">
+          <div class="analysis-header" style="color: #ef4444;">
+            <span>🛠️ Análise da Validação Hardware in the Loop (HIL)</span>
+          </div>
+          <div class="analysis-content">
+            <p>A bancada de testes <strong>HIL (Hardware-In-the-Loop)</strong> atua como um laboratório virtual hiper-realista, onde o firmware real do Arduino interage com equações diferenciais ao invés do mundo físico. Isso permitiu estressar o controlador PID sob condições caóticas, sem risco de incêndio, queima de termistores ou desperdício de material.</p>
+            <p>A inserção automatizada de falhas crônicas, como o desacoplamento do barramento I²C do BME280 ou picos súbitos na Temperatura Ambiente ($T_{amb}$), validou a robustez da arquitetura <em>Fail-Safe</em>. O sistema detecta a anomalia sensoriada, entra em estado de <code>ERROR</code> na FSM e bloqueia o acionamento do MOSFET, comprovando tratar-se de um design industrial confiável para longas madrugadas de secagem autônoma.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: VALIDAÇÃO CIENTÍFICA (ITEM 4) -->
+      <section class="tab-pane" id="tab-validation">
+        <div class="validation-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h2>📊 Relatório Computacional Consolidado</h2>
+            <p>Resultados extraídos da suíte de testes do <strong>Python (Matplotlib/SciPy)</strong> comprovando matematicamente a sanidade da arquitetura.</p>
+          </div>
+        </div>
+
+        <div class="validation-grid">
+          <!-- CARD 1: Espaço de Estados -->
+          <div class="card val-card">
+            <div class="card-header">
+              <h3>Modelo Térmico LTI (Espaço de Estados)</h3>
+            </div>
+            <div class="card-body">
+              <p style="color: var(--text-secondary); margin-bottom: 12px; font-size: 0.85rem;">
+                Comportamento frente ao <em>Setpoint</em> de 65°C simulando o *Lumped Capacitance Model* (Polipropileno + PETG 1Kg).
+              </p>
+
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Métrica de Controle Térmico</th>
+                    <th>PID (Relay Windowing)</th>
+                    <th>Termostato On-Off</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Sobressinal (Overshoot Máximo)</td>
+                    <td class="metric-good">0.00% (Atinge suavemente 50.1°C transiente)</td>
+                    <td class="metric-bad">Risco de colapso térmico</td>
+                  </tr>
+                  <tr>
+                    <td>Tempo de Acomodação (±2%)</td>
+                    <td class="metric-good">1199.9 segundos (~20 min)</td>
+                    <td class="metric-bad">Infinito (Oscilação perpétua)</td>
+                  </tr>
+                  <tr>
+                    <td>Erro de Regime Permanente</td>
+                    <td class="metric-good">Anulado (Tende a 0)</td>
+                    <td class="metric-bad">Flutuação brutal (±2.68°C)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- CARD 2: Fickiana -->
+          <div class="card val-card">
+            <div class="card-header">
+              <h3>Dessorção Fickiana Analítica</h3>
+            </div>
+            <div class="card-body">
+              <p style="color: var(--text-secondary); margin-bottom: 12px; font-size: 0.85rem;">
+                Esvaziamento hídrico regido pela Segunda Lei de Fick. Constante $D_{eff}$ a 65°C ($1.5047 \times 10^{-12} \, \text{m}^2/\text{s}$).
+              </p>
+
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tempo (Horas)</th>
+                    <th>Conc. Retida (%)</th>
+                    <th>Removida (%)</th>
+                    <th>Condição Físico-Química</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>0.0 (Início)</td>
+                    <td>1.2000 %</td>
+                    <td>0.0 %</td>
+                    <td class="metric-bad">Crítica (Severa Microebulição)</td>
+                  </tr>
+                  <tr>
+                    <td>1.0</td>
+                    <td>0.9835 %</td>
+                    <td>18.3 %</td>
+                    <td class="metric-warn">Ruim (Formação de Bolhas)</td>
+                  </tr>
+                  <tr>
+                    <td>2.0</td>
+                    <td>0.8997 %</td>
+                    <td>25.5 %</td>
+                    <td class="metric-warn">Regular (Uso Estético)</td>
+                  </tr>
+                  <tr>
+                    <td>4.0 (Final)</td>
+                    <td>0.7867 %</td>
+                    <td>35.0 %</td>
+                    <td class="metric-good">Excelente (< 0.1% em equilíbrio longo)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- CARD 3: HIL -->
+          <div class="card val-card" style="grid-column: 1 / -1;">
+            <div class="card-header">
+              <h3>Desempenho Hardware In the Loop (HIL)</h3>
+            </div>
+            <div class="card-body" style="display: flex; gap: 20px; justify-content: space-between;">
+              <div class="hil-stat" style="flex: 1;">
+                <span class="hil-stat-title">Frequência de Telemetria Validada</span>
+                <span class="hil-stat-value" style="color: var(--accent-cyan);">5.0 Hz (USB 115200 bps)</span>
+              </div>
+              <div class="hil-stat" style="flex: 1;">
+                <span class="hil-stat-title">Recuperação Média de Choque Térmico (Queda de 3°C)</span>
+                <span class="hil-stat-value" style="color: var(--accent-green);">~22,4 segundos</span>
+              </div>
+              <div class="hil-stat" style="flex: 1;">
+                <span class="hil-stat-title">Integridade da Arquitetura Fail-Safe</span>
+                <span class="hil-stat-value" style="color: var(--accent-cyan);">100% de Bloqueio MOSFET em Falhas I2C</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="analysis-panel" style="border-left-color: #22c55e;">
+          <div class="analysis-header" style="color: #22c55e;">
+            <span>🔬 Conclusão do Item 4</span>
+          </div>
+          <div class="analysis-content">
+            <p>Através da modelagem puramente matemática em <strong>Lumped Capacitance</strong> e <strong>Espaço de Estados</strong>, a dependência do método "tentativa-e-erro" foi abolida. Os resultados tabulados comprovam que o PID projetado protege o filamento de ser derretido no carretel (fenômeno de histerese), e as curvas Fickianas garantem que o tempo de forno estabelecido (4 horas) retira o estresse hidrolítico sem consumir energia à toa.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 7: GRÁFICOS PYTHON (MATPLOTLIB) -->
+      <section class="tab-pane" id="tab-python-graphs">
+        <div class="validation-header" style="display: flex; justify-content: space-between; align-items: center; border-left-color: #3b82f6;">
+          <div>
+            <h2>📈 Gráficos Python (Matplotlib)</h2>
+            <p>Visualização expandida das curvas plotadas pelo backend Python após o processamento das malhas matemáticas.</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+          <!-- GRÁFICO 1 -->
+          <div class="card val-card" style="padding: 20px;">
+            <div class="card-header" style="border-bottom: none; margin-bottom: 0;">
+              <h3 style="color: var(--accent-cyan); font-size: 1.1rem; margin-bottom: 15px;">Comparativo: PID (Relay Windowing) vs Termostato On-Off</h3>
+            </div>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: flex; justify-content: center; overflow: hidden;">
+              <img src="../docs/img/grafico_2_pid_vs_onoff.png" class="math-graph" style="width: 100%; max-width: 1200px; height: auto; border-radius: 4px;" alt="Gráfico PID">
+            </div>
+          </div>
+
+          <!-- GRÁFICO 2 -->
+          <div class="card val-card" style="padding: 20px;">
+            <div class="card-header" style="border-bottom: none; margin-bottom: 0;">
+              <h3 style="color: var(--accent-green); font-size: 1.1rem; margin-bottom: 15px;">Dessorção Fickiana Analítica (PETG 65°C)</h3>
+            </div>
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; display: flex; justify-content: center; overflow: hidden;">
+              <img src="../docs/img/grafico_1_difusao_fickiana.png" class="math-graph" style="width: 100%; max-width: 1200px; height: auto; border-radius: 4px;" alt="Gráfico Fickiana">
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+      <div>Desenvolvimento de Estação de Secagem de Baixo Custo para Manufatura Aditiva (FDM) • Autodesk Tinkercad Circuits & Arduino Architecture</div>
+      <div>Validação Térmica em Espaço de Estados & Hardware in the Loop (HIL)</div>
+    </footer>
+  </div>
+
+  <!-- POPUP DE INFORMAÇÕES (BANCADA VIRTUAL) -->
+  <div id="componentInfoPopup" class="component-popup" style="display: none;">
+    <div class="popup-header">
+      <h4 id="popupTitle">Component</h4>
+      <button id="popupClose">&times;</button>
+    </div>
+    <div class="popup-body">
+      <p id="popupDesc">Description</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+{
+  "project_name": "Estação de Secagem de Filamentos FDM",
+  "author": "Engenharia de Sistemas Embarcados e Manufatura Aditiva",
+  "version": "1.0.0",
+  "target_platform": "Autodesk Tinkercad Circuits / Hardware Real",
+  "components": [
+    {
+      "id": "U1",
+      "name": "Arduino Uno R3",
+      "footprint": "DIP-28 / SMD Module",
+      "pins": {
+        "5V": "NET_5V",
+        "3V3": "NET_3V3",
+        "GND_1": "NET_GND",
+        "GND_2": "NET_GND",
+        "A4": "NET_I2C_SDA",
+        "A5": "NET_I2C_SCL",
+        "D2": "NET_BTN_SEL",
+        "D3": "NET_BTN_RUN",
+        "D9": "NET_GATE_PWM",
+        "D10": "NET_BASE_EXAUST"
+      }
+    },
+    {
+      "id": "U2",
+      "name": "Display LCD 16x2 I2C (PCF8574)",
+      "i2c_address": "0x27",
+      "pins": {
+        "GND": "NET_GND",
+        "VCC": "NET_5V",
+        "SDA": "NET_I2C_SDA",
+        "SCL": "NET_I2C_SCL"
+      }
+    },
+    {
+      "id": "U3",
+      "name": "Sensor Bosch BME280 (MEMS)",
+      "i2c_address": "0x76",
+      "pins": {
+        "GND": "NET_GND",
+        "VCC": "NET_5V",
+        "SDA": "NET_I2C_SDA",
+        "SCL": "NET_I2C_SCL"
+      }
+    },
+    {
+      "id": "Q1",
+      "name": "MOSFET N-Channel IRLZ44N / IRF520",
+      "package": "TO-220",
+      "pins": {
+        "Gate": "NET_MOSFET_G",
+        "Drain": "NET_PELTIER_NEG",
+        "Source": "NET_GND"
+      }
+    },
+    {
+      "id": "Q2",
+      "name": "Transistor NPN 2N2222",
+      "package": "TO-92",
+      "pins": {
+        "Base": "NET_TRANSISTOR_B",
+        "Collector": "NET_FAN_EXAUST_NEG",
+        "Emitter": "NET_GND"
+      }
+    },
+    {
+      "id": "H1",
+      "name": "Pastilha Peltier TEC1-12706 (Atuador Térmico)",
+      "power_rating": "60W / 12V / 5A",
+      "pins": {
+        "V+": "NET_12V",
+        "V-": "NET_PELTIER_NEG"
+      }
+    },
+    {
+      "id": "M1",
+      "name": "Ventoinha Primária (Convecção Contínua Dissipador)",
+      "power_rating": "12V / 0.15A",
+      "pins": {
+        "V+": "NET_12V",
+        "V-": "NET_GND"
+      }
+    },
+    {
+      "id": "M2",
+      "name": "Ventoinha Secundária (Exaustor de Umidade)",
+      "power_rating": "12V / 0.18A",
+      "pins": {
+        "V+": "NET_12V",
+        "V-": "NET_FAN_EXAUST_NEG"
+      }
+    },
+    {
+      "id": "PWR1",
+      "name": "Fonte Chaveada 12V 10A DC",
+      "pins": {
+        "+12V": "NET_12V",
+        "GND": "NET_GND"
+      }
+    },
+    {
+      "id": "SW1",
+      "name": "Botão Táctil Selecionar Perfil",
+      "pins": {
+        "1": "NET_5V",
+        "2": "NET_BTN_SEL"
+      }
+    },
+    {
+      "id": "SW2",
+      "name": "Botão Táctil Iniciar / Parar",
+      "pins": {
+        "1": "NET_5V",
+        "2": "NET_BTN_RUN"
+      }
+    },
+    {
+      "id": "R1",
+      "name": "Resistor Pull-down Botão 1 (10kΩ)",
+      "pins": { "1": "NET_BTN_SEL", "2": "NET_GND" }
+    },
+    {
+      "id": "R2",
+      "name": "Resistor Pull-down Botão 2 (10kΩ)",
+      "pins": { "1": "NET_BTN_RUN", "2": "NET_GND" }
+    },
+    {
+      "id": "R3",
+      "name": "Resistor Gate MOSFET (220Ω)",
+      "pins": { "1": "NET_GATE_PWM", "2": "NET_MOSFET_G" }
+    },
+    {
+      "id": "R4",
+      "name": "Resistor Pull-down Gate (10kΩ)",
+      "pins": { "1": "NET_MOSFET_G", "2": "NET_GND" }
+    },
+    {
+      "id": "R5",
+      "name": "Resistor Base Transistor (1kΩ)",
+      "pins": { "1": "NET_BASE_EXAUST", "2": "NET_TRANSISTOR_B" }
+    },
+    {
+      "id": "D1",
+      "name": "Diodo Roda-Livre 1N4007 (Flyback Diode)",
+      "pins": { "Cathode": "NET_12V", "Anode": "NET_FAN_EXAUST_NEG" }
+    }
+  ],
+  "nets": [
+    { "name": "NET_12V", "voltage": 12.0, "type": "Power" },
+    { "name": "NET_5V", "voltage": 5.0, "type": "Power" },
+    { "name": "NET_GND", "voltage": 0.0, "type": "Ground" },
+    { "name": "NET_I2C_SDA", "type": "Signal_I2C" },
+    { "name": "NET_I2C_SCL", "type": "Signal_I2C" },
+    { "name": "NET_BTN_SEL", "type": "Digital_Input" },
+    { "name": "NET_BTN_RUN", "type": "Digital_Input" },
+    { "name": "NET_GATE_PWM", "type": "Digital_PWM_Output" },
+    { "name": "NET_BASE_EXAUST", "type": "Digital_Output" },
+    { "name": "NET_PELTIER_NEG", "type": "Switched_Power" },
+    { "name": "NET_FAN_EXAUST_NEG", "type": "Switched_Power" }
+  ]
+}
